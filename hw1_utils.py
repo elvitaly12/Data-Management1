@@ -1,8 +1,4 @@
 
-import glob
-
-# from pdfminer.high_level import extract_text
-from pdfminer.high_level import extract_text
 from wordcloud import WordCloud
 
 '''
@@ -44,26 +40,3 @@ def decode_http(http_data):
         http_dict[key] = value
     return http_dict
 
-
-# assume we got something like: ..../pdfs/
-def get_all_files_rec(path):
-    return glob.glob(path + '/**/*.pdf', recursive=True)
-
-# gets a pdf file, filters the stopwords and returns a wordcloud photo
-def photoFromPDF(pdf_file_path):
-    # convert pdf to string
-    text = extract_text(pdf_file_path)
-    text = text.split()
-    # print(text)
-    file = open('stopwords.txt', 'r')
-    stop_words_txt = [line.split('\n') for line in file.readlines()]
-    # print(stop_words.dtype)
-    stop_words = [item[0] for item in stop_words_txt]
-    # print(stop_words)
-    # filter the stopwords
-    filtered_words = [word for word in text if word not in stop_words]
-    # print(filtered_words)
-    result = ' '.join(filtered_words)
-    result2 = generate_wordcloud_to_file(result, 'ofir_image.png')
-
-    return result2

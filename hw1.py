@@ -2,8 +2,16 @@ import socket
 import os
 import string
 import hw1_utils
+
 import matplotlib.pyplot as plt
-#from pdfminer import high_level
+import pdfminer
+from pdfminer.high_level import extract_text
+import glob
+
+# import webbrowser
+import urllib
+
+
 
 # Define socket host and port
 SERVER_HOST = '127.0.0.1'
@@ -11,18 +19,54 @@ SERVER_PORT = 8888
 DATA_MAX_SIZE = 4096
 
 
+# assume we got something like: ..../pdfs/
+def get_all_files_rec(path):
+    return glob.glob(path + '/**/*.pdf', recursive=True)
+
+
+# gets a pdf file, filters the stopwords and returns a wordcloud photo
+def photo_from_pdf(pdf_file_path):
+    # convert pdf to string
+    text = extract_text(pdf_file_path)
+    text = text.split()
+    # print(text)
+    file = open('stopwords.txt', 'r')
+    stop_words_txt = [line.split('\n') for line in file.readlines()]
+    # print(stop_words.dtype)
+    stop_words = [item[0] for item in stop_words_txt]
+    # print(stop_words)
+    # filter the stopwords
+    filtered_words = [word for word in text if word not in stop_words]
+    # print(filtered_words)
+    result = ' '.join(filtered_words)
+    result2 = hw1_utils.generate_wordcloud_to_file(result, 'test_image.png')
+    return result2
+
+
 if __name__ == "__main__":
 
-    picture = hw1_utils.photoFromPDF('pdfs/test.pdf')
+    picture = photo_from_pdf('pdfs/test.pdf')
     # print(text)
-
     plt.figure(figsize=(10, 5))
     plt.imshow(picture, interpolation="bilinear")
     plt.axis('off')
+    # plt.savefig(f'wordcloud.png', dpi=300)
 
-    plt.savefig(f'wordcloud.png',
-                dpi=300)
-    plt.show()
+    # plt.show()
+    filename = "pdf4"
+    wc_page_html_string = "<!DOCTYPE html> <html> <body>"
+    wc_page_html_string+= "<h1>" + filename + ".pdf</h1>"
+    wc_page_html_string+= "<img src = \"test_image.png>\""
+    wc_page_html_string += "<button type=\"button\">Go back</button>"
+    wc_page_html_string += "</body> </html>"
+
+    f = open('wordcloud.html', 'w')
+    message = wc_page_html_string
+    f.write(message)
+    f.close()
+
+    page = urllib.urlopen("wordcloud.html").read()
+    print(page)
 
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
