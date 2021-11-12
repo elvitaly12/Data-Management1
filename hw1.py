@@ -12,7 +12,6 @@ import glob
 import urllib
 
 
-
 # Define socket host and port
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 8888
@@ -29,16 +28,15 @@ def photo_from_pdf(pdf_file_path, pdf_file_name):
     # convert pdf to string
     text = extract_text(pdf_file_path)
     text = text.split()
-    # print(text)
     file = open('stopwords.txt', 'r')
+
     stop_words_txt = [line.split('\n') for line in file.readlines()]
-    # print(stop_words.dtype)
     stop_words = [item[0] for item in stop_words_txt]
-    # print(stop_words)
+
     # filter the stopwords
     filtered_words = [word for word in text if word not in stop_words]
-    # print(filtered_words)
     result = ' '.join(filtered_words)
+
     # pic_name = "wordclouds_pics/" + pdf_file_path + ".png"
     pic_name = pdf_file_path + ".png"
     result2 = hw1_utils.generate_wordcloud_to_file(result, pic_name)
@@ -75,13 +73,14 @@ if __name__ == "__main__":
         # wc_page_html_string += "<tr><td><button type=\"button\" onclick=\"location.href='../LandingPage.html'\">Go back</button></td></tr>\n"
         # wc_page_html_string += "<tr><td><a href=\"~\LandingPage.html\">Go back</a></td></tr>\n"
 
+        # Create the Go Back button
         wc_page_html_string += "<tr><td><a href=\""
         for d in range(0, all_files_levels[i]):
             wc_page_html_string += "..\\"
         wc_page_html_string += "LandingPage.html\">Go back</a></td></tr>\n"
         wc_page_html_string += "</table></body> </html>\n"
 
-        # insert the string to a file
+        # Insert the html string to an html file
         item_name = "pdfs\\" + item + ".html"
         f = open(item_name, 'w')
         message = wc_page_html_string
