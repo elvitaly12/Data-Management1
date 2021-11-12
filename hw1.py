@@ -25,7 +25,7 @@ def get_all_files_rec(path):
 
 
 # gets a pdf file, filters the stopwords and returns a wordcloud photo
-def photo_from_pdf(pdf_file_path):
+def photo_from_pdf(pdf_file_path, pdf_file_name):
     # convert pdf to string
     text = extract_text(pdf_file_path)
     text = text.split()
@@ -39,34 +39,88 @@ def photo_from_pdf(pdf_file_path):
     filtered_words = [word for word in text if word not in stop_words]
     # print(filtered_words)
     result = ' '.join(filtered_words)
-    result2 = hw1_utils.generate_wordcloud_to_file(result, 'test_image.png')
+    # pic_name = "wordclouds_pics/" + pdf_file_path + ".png"
+    pic_name = pdf_file_path + ".png"
+    result2 = hw1_utils.generate_wordcloud_to_file(result, pic_name)
     return result2
 
 
 if __name__ == "__main__":
 
-    picture = photo_from_pdf('pdfs/test.pdf')
-    # print(text)
-    plt.figure(figsize=(10, 5))
-    plt.imshow(picture, interpolation="bilinear")
-    plt.axis('off')
-    # plt.savefig(f'wordcloud.png', dpi=300)
+    # Get all files for buttons in Landing Page
+    all_files_paths = get_all_files_rec("pdfs")
+    all_files_buttons = [item[5:] for item in all_files_paths]
+    print(all_files_paths)
 
-    # plt.show()
-    filename = "pdf4"
-    wc_page_html_string = "<!DOCTYPE html> <html> <body>"
-    wc_page_html_string+= "<h1>" + filename + ".pdf</h1>"
-    wc_page_html_string+= "<img src = \"test_image.png>\""
-    wc_page_html_string += "<button type=\"button\">Go back</button>"
-    wc_page_html_string += "</body> </html>"
+    all_files_levels = [item.count('\\') for item in all_files_paths]
+    pics_names = [item[item.rfind('\\')+1:] for item in all_files_paths]
+    # print(pics_names)
 
-    f = open('wordcloud.html', 'w')
-    message = wc_page_html_string
-    f.write(message)
+    # Create Landing Page
+    landing_page_html_string = "<!DOCTYPE html> <html> <body>\n"
+    landing_page_html_string += "<h1>Landing Page</h1>\n"
+    landing_page_html_string += "<h5>Welcome to the landing page!</h5>\n"
+    landing_page_html_string += "<h5>Choose a .pdf file to generate a wordcloud from:</h5>\n"
+    landing_page_html_string += "<table>\n"
+
+    i = 0
+    for item in all_files_buttons:
+        # Create the photo
+        picture = photo_from_pdf(all_files_paths[i], item)
+
+        # Create the wordcloud html page
+        wc_page_html_string = "<!DOCTYPE html> <html> <body>\n"
+        wc_page_html_string += "<h1>" + item + "</h1>"
+        wc_page_html_string += "<table><tr><td><img src = \"" + pics_names[i] + ".png\"></td></tr> \n"
+        # wc_page_html_string += "<tr><td><button type=\"button\" onclick=\"location.href='../LandingPage.html'\">Go back</button></td></tr>\n"
+        # wc_page_html_string += "<tr><td><a href=\"~\LandingPage.html\">Go back</a></td></tr>\n"
+
+        wc_page_html_string += "<tr><td><a href=\""
+        for d in range(0, all_files_levels[i]):
+            wc_page_html_string += "..\\"
+        wc_page_html_string += "LandingPage.html\">Go back</a></td></tr>\n"
+        wc_page_html_string += "</table></body> </html>\n"
+
+        # insert the string to a file
+        item_name = "pdfs\\" + item + ".html"
+        f = open(item_name, 'w')
+        message = wc_page_html_string
+        f.write(message)
+        f.close()
+
+        # landing_page_html_string += "<tr> <td> <button onclick = \"location.href='"
+        # landing_page_html_string += "wordclouds_htmls/"
+        # landing_page_html_string += item + ".html'\" " \
+        # landing_page_html_string += item_name + "'\" "
+        # landing_page_html_string += "type = \"button\">"
+        # landing_page_html_string += item
+        # landing_page_html_string += "</button> </td> </tr>\n"
+
+        # Add a link in the landing page
+        landing_page_html_string += "<tr><td><a href = \""
+        landing_page_html_string += item_name + "\">"
+        landing_page_html_string += item
+        landing_page_html_string += "</a> </td> </tr>\n"
+
+        i += 1
+    landing_page_html_string += "</table>\n"
+    landing_page_html_string += "</body> </html>"
+
+    f = open('LandingPage.html', 'w')
+    message1 = landing_page_html_string
+    f.write(message1)
     f.close()
 
-    page = urllib.urlopen("wordcloud.html").read()
-    print(page)
+    # For showing a wordcloud
+    # plt.figure(figsize=(10, 5))
+    # plt.imshow(picture, interpolation="bilinear")
+    # plt.axis('off')
+    # # # plt.savefig(f'wordcloud.png', dpi=300)
+    #
+    # plt.show()
+
+    # page = urllib.urlopen("wordcloud.html").read()
+    # print(page)
 
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
