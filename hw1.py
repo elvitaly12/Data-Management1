@@ -2,6 +2,8 @@ import socket
 import os
 import string
 import hw1_utils
+import os
+import datetime
 
 import matplotlib.pyplot as plt
 import pdfminer
@@ -16,6 +18,12 @@ import urllib
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 8888
 DATA_MAX_SIZE = 4096
+
+
+def check_if_photo_exists(path_photo):
+    return  os.path.exists(path_photo)
+
+
 
 
 # assume we got something like: ..../pdfs/
@@ -45,14 +53,19 @@ def photo_from_pdf(pdf_file_path, pdf_file_name):
 
 if __name__ == "__main__":
 
+    current_date = datetime.datetime.now()
+    response_headers_date = current_date.strftime("%d-%b-%Y (%H:%M:%S)")
+    print(response_headers_date)
+    response_proto = 'HTTP/1.1'
+    response_status = '200'
+    response_status_text = 'Change_later'
+    landing_page_requested=False
+
     # Get all files for buttons in Landing Page
     all_files_paths = get_all_files_rec("pdfs")
     all_files_buttons = [item[5:] for item in all_files_paths]
-    print(all_files_paths)
-
     all_files_levels = [item.count('\\') for item in all_files_paths]
     pics_names = [item[item.rfind('\\')+1:] for item in all_files_paths]
-    # print(pics_names)
 
     # Create Landing Page
     landing_page_html_string = "<!DOCTYPE html> <html> <body>\n"
@@ -70,8 +83,6 @@ if __name__ == "__main__":
         wc_page_html_string = "<!DOCTYPE html> <html> <body>\n"
         wc_page_html_string += "<h1>" + item + "</h1>"
         wc_page_html_string += "<table><tr><td><img src = \"" + pics_names[i] + ".png\"></td></tr> \n"
-        # wc_page_html_string += "<tr><td><button type=\"button\" onclick=\"location.href='../LandingPage.html'\">Go back</button></td></tr>\n"
-        # wc_page_html_string += "<tr><td><a href=\"~\LandingPage.html\">Go back</a></td></tr>\n"
 
         # Create the Go Back button
         wc_page_html_string += "<tr><td><a href=\""
@@ -86,14 +97,6 @@ if __name__ == "__main__":
         message = wc_page_html_string
         f.write(message)
         f.close()
-
-        # landing_page_html_string += "<tr> <td> <button onclick = \"location.href='"
-        # landing_page_html_string += "wordclouds_htmls/"
-        # landing_page_html_string += item + ".html'\" " \
-        # landing_page_html_string += item_name + "'\" "
-        # landing_page_html_string += "type = \"button\">"
-        # landing_page_html_string += item
-        # landing_page_html_string += "</button> </td> </tr>\n"
 
         # Add a link in the landing page
         landing_page_html_string += "<tr><td><a href = \""
@@ -115,11 +118,7 @@ if __name__ == "__main__":
     # plt.imshow(picture, interpolation="bilinear")
     # plt.axis('off')
     # # # plt.savefig(f'wordcloud.png', dpi=300)
-    #
     # plt.show()
-
-    # page = urllib.urlopen("wordcloud.html").read()
-    # print(page)
 
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -129,41 +128,87 @@ if __name__ == "__main__":
             with conn:
                 while True:
                     data = conn.recv(DATA_MAX_SIZE)
+                    current_date = datetime.datetime.now()
+                    response_headers_date  = current_date.strftime("%d-%b-%Y (%H:%M:%S.%f)")
+                    response_headers_content_type ="text/html"
+                    # TODO: check len of message
+                    response_headers_content_len = ""
+                    response_headers = response_headers_date+response_headers_content_type+response_headers_content_len
+
+
                     print("data is ", data)
                     if not data:
                         # in any other error, return status 500
-                        print('status 500')
+
+                        response_status = '500'
+
                         break
-
                     data2 = "<!DOCTYPE html><html><body><h1>My First Heading</h1><p>My first paragraph.</p></body></html>"
+                    # with open ('test_server.txt', 'r') as f:
+                    #     file_str = f.read()
+                    #     my_str_as_bytes = str.encode(file_str)
 
-                    # # with open ('test_server.txt', 'r') as f:
-                    # #     file_str = f.read()
-                    # #     my_str_as_bytes = str.encode(file_str)
-                    #
-                    # # http_data = hw1_utils.decode_http(my_str_as_bytes)
-                    # http_data = hw1_utils.decode_http(data)
-                    # request = http_data["Request"].split('\n')[0]
-                    # URL = request[1]
-                    #
-                    # # check if the request is GET type
-                    # # if not, return with status 501
-                    # request_name =  URL.split(' ')[0]
-                    # if request_name!='GET':
-                    #     print('STATUS 501')
-                    #
-                    #
-                    # # not need to check of it's localhost 8888 because it's defined already
-                    #
-                    # prefix_str = "GET localhost:"
-                    # prefix_str += str(SERVER_PORT)
-                    # pdfname_index = len(prefix_str)
-                    # filename = request[pdfname_index+1:]
-                    #
-                    # # check if file exists, if not return 404
-                    #
-                    # # in case of success (valid) return status 200
+                    # http_data = hw1_utils.decode_http(my_str_as_bytes)
+                    http_data = hw1_utils.decode_http(data)
+                    request = http_data["Request"].split('\n')[0]
+                    URL = request[1]
 
-                    conn.sendall(data2.encode())   ## NEED TO CHANGE ENCODE
-                    #s.close()  MAYBE NEED TO ADD
+                    # check if the request is GET type
+                    # if not, return with status 501
+                    request_name =  URL.split(' ')[0]
+
+
+                    if request_name!='GET':
+                        response_status = '501'
+                        break # need to change later
+
+
+                    str_local_host = "localhost:8888"
+                    sub_url = URL.split(' ')[1]
+                    if sub_url[0:14] != "localhost:8888":
+                        response_status = '500'
+                        break  # need to change later
+
+
+                    if sub_url == str_local_host:
+                        landing_page_requested = True
+
+
+
+                    # not need to check of it's localhost 8888 because it's defined already
+                    prefix_str = "GET localhost:"
+                    prefix_str += str(SERVER_PORT)
+                    pdfname_index = len(prefix_str)
+                    filename = request[pdfname_index+1:]
+                    # check if file exists, if not return 404
+                    if not check_if_photo_exists(filename):
+                        response_status = '404'
+                    # in case of success (valid) return status 200
+                    conn.sendall(str.encode(response_proto))   ## returns status
+                    conn.sendall(str.encode( response_status))  ## returns status
+                    conn.sendall(str.encode(response_status_text)) ## returns status
+                    conn.sendall(str.encode(response_headers))  ## returns header of response
+                    conn.sendall(b'\n')  # to separate headers from body
+                    if landing_page_requested:
+                        conn.sendall(str.encode(landing_page_html_string))  ## sending landing page
+                   else:
+                       ## NEED TO ADD SEND AN IMAGE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
