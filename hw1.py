@@ -3,14 +3,10 @@ import string
 import hw1_utils
 import os
 import datetime
-
-import matplotlib.pyplot as plt
-import pdfminer
+# import matplotlib.pyplot as plt
+# import pdfminer
 from pdfminer.high_level import extract_text
 import glob
-
-# import webbrowser
-import urllib
 
 
 # Define socket host and port
@@ -47,19 +43,14 @@ def photo_from_pdf(pdf_file_path, pdf_file_name):
     result2 = hw1_utils.generate_wordcloud_to_file(result, pic_name)
     return result2
 
-
-if __name__ == "__main__":
-
-
-
-
-
     # For showing a wordcloud
     # plt.figure(figsize=(10, 5))
     # plt.imshow(picture, interpolation="bilinear")
     # plt.axis('off')
     # # # plt.savefig(f'wordcloud.png', dpi=300)
     # plt.show()
+
+if __name__ == "__main__":
 
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -70,21 +61,21 @@ if __name__ == "__main__":
                 while True:
                     data = conn.recv(DATA_MAX_SIZE)
                     response_proto = 'HTTP/1.1'
-
-                    response_status_text = 'Change_later'
                     landing_page_requested = False
 
-                    print("data is ", data)
+                    # print("data is ", data)
                     if not data:
                         # in any other error, return status 500
                         response_status = '500'
                         response = str.encode(response_proto)
+                        response += b' '
                         response += str.encode(response_status)
-                        response += str.encode("EMPTY DATA")
+                        response += b' '
+                        response += str.encode("EMPTY DATA\n")
                         conn.sendall(response)
                         break
 
-                    data2 = "<!DOCTYPE html><html><body><h1>My First Heading</h1><p>My first paragraph.</p></body></html>"
+                    # data2 = "<!DOCTYPE html><html><body><h1>My First Heading</h1><p>My first paragraph.</p></body></html>"
                     # with open ('test_server.txt', 'r') as f:
                     #     file_str = f.read()
                     #     my_str_as_bytes = str.encode(file_str)
@@ -96,13 +87,15 @@ if __name__ == "__main__":
 
                     # check if the request is GET type
                     # if not, return with status 501
-                    request_name =  URL.split(' ')[0]
+                    request_name = URL.split(' ')[0]
 
-                    if request_name!='GET':
+                    if request_name != 'GET':
                         response_status = '501'
                         response = str.encode(response_proto)
+                        response += b' '
                         response += str.encode(response_status)
-                        response += str.encode("INVALID REQUEST TYPE")
+                        response += b' '
+                        response += str.encode("INVALID REQUEST TYPE\n")
                         conn.sendall(response)
                         break
 
@@ -130,8 +123,10 @@ if __name__ == "__main__":
                     if not landing_page_requested and not check_if_photo_exists(filename):
                         response_status = '404'
                         response = str.encode(response_proto)
+                        response += b' '
                         response += str.encode(response_status)
-                        response += str.encode("FILE NOT FOUND")
+                        response += b' '
+                        response += str.encode("FILE NOT FOUND\n")
                         conn.sendall(response)
                         break
 
@@ -197,17 +192,18 @@ if __name__ == "__main__":
                     # Build the response message:
                     response_status = '200' # in case of success (valid) return status 200
                     response = str.encode(response_proto)
+                    response += b' '
                     response += str.encode(response_status)
-                    response += str.encode("OK")
-                    response += b'\n'
+                    response += b' '
+                    response += str.encode("OK\n")
 
                     current_date = datetime.datetime.now()
                     response_headers_date = current_date.strftime("%d-%b-%Y (%H:%M:%S.%f)")
                     response_headers_content_type = "text/html"
-                    response_headers_content_len = ""
-                    response_headers = response_headers_date + response_headers_content_type + response_headers_content_len
-                    response+=str.encode(response_headers)
-                    response+=b'\n' # to separate headers from body
+                    # response_headers_content_len = ""
+                    response_headers = response_headers_date + " " + response_headers_content_type
+                    response += str.encode(response_headers)
+                    response += b'\n' # to separate headers from body
 
                     if landing_page_requested:
                         output = open('LandingPage.html', 'rb')
