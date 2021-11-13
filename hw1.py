@@ -1,5 +1,4 @@
 import socket
-import os
 import string
 import hw1_utils
 import os
@@ -22,8 +21,6 @@ DATA_MAX_SIZE = 4096
 
 def check_if_photo_exists(path_photo):
     return  os.path.exists(path_photo)
-
-
 
 
 # assume we got something like: ..../pdfs/
@@ -53,65 +50,9 @@ def photo_from_pdf(pdf_file_path, pdf_file_name):
 
 if __name__ == "__main__":
 
-    current_date = datetime.datetime.now()
-    response_headers_date = current_date.strftime("%d-%b-%Y (%H:%M:%S)")
-    print(response_headers_date)
-    response_proto = 'HTTP/1.1'
-    response_status = '200'
-    response_status_text = 'Change_later'
-    landing_page_requested=False
 
-    # Get all files for buttons in Landing Page
-    all_files_paths = get_all_files_rec("pdfs")
-    all_files_buttons = [item[5:] for item in all_files_paths]
-    all_files_levels = [item.count('\\') for item in all_files_paths]
-    pics_names = [item[item.rfind('\\')+1:] for item in all_files_paths]
 
-    # Create Landing Page
-    landing_page_html_string = "<!DOCTYPE html> <html> <body>\n"
-    landing_page_html_string += "<h1>Landing Page</h1>\n"
-    landing_page_html_string += "<h5>Welcome to the landing page!</h5>\n"
-    landing_page_html_string += "<h5>Choose a .pdf file to generate a wordcloud from:</h5>\n"
-    landing_page_html_string += "<table>\n"
 
-    i = 0
-    for item in all_files_buttons:
-        # Create the photo
-        picture = photo_from_pdf(all_files_paths[i], item)
-
-        # Create the wordcloud html page
-        wc_page_html_string = "<!DOCTYPE html> <html> <body>\n"
-        wc_page_html_string += "<h1>" + item + "</h1>"
-        wc_page_html_string += "<table><tr><td><img src = \"" + pics_names[i] + ".png\"></td></tr> \n"
-
-        # Create the Go Back button
-        wc_page_html_string += "<tr><td><a href=\""
-        for d in range(0, all_files_levels[i]):
-            wc_page_html_string += "..\\"
-        wc_page_html_string += "LandingPage.html\">Go back</a></td></tr>\n"
-        wc_page_html_string += "</table></body> </html>\n"
-
-        # Insert the html string to an html file
-        item_name = "pdfs\\" + item + ".html"
-        f = open(item_name, 'w')
-        message = wc_page_html_string
-        f.write(message)
-        f.close()
-
-        # Add a link in the landing page
-        landing_page_html_string += "<tr><td><a href = \""
-        landing_page_html_string += item_name + "\">"
-        landing_page_html_string += item
-        landing_page_html_string += "</a> </td> </tr>\n"
-
-        i += 1
-    landing_page_html_string += "</table>\n"
-    landing_page_html_string += "</body> </html>"
-
-    f = open('LandingPage.html', 'w')
-    message1 = landing_page_html_string
-    f.write(message1)
-    f.close()
 
     # For showing a wordcloud
     # plt.figure(figsize=(10, 5))
@@ -128,21 +69,21 @@ if __name__ == "__main__":
             with conn:
                 while True:
                     data = conn.recv(DATA_MAX_SIZE)
-                    current_date = datetime.datetime.now()
-                    response_headers_date  = current_date.strftime("%d-%b-%Y (%H:%M:%S.%f)")
-                    response_headers_content_type ="text/html"
-                    # TODO: check len of message
-                    response_headers_content_len = ""
-                    response_headers = response_headers_date+response_headers_content_type+response_headers_content_len
+                    response_proto = 'HTTP/1.1'
 
+                    response_status_text = 'Change_later'
+                    landing_page_requested = False
 
                     print("data is ", data)
                     if not data:
                         # in any other error, return status 500
-
                         response_status = '500'
-
+                        response = str.encode(response_proto)
+                        response += str.encode(response_status)
+                        response += str.encode("EMPTY DATA")
+                        conn.sendall(response)
                         break
+
                     data2 = "<!DOCTYPE html><html><body><h1>My First Heading</h1><p>My first paragraph.</p></body></html>"
                     # with open ('test_server.txt', 'r') as f:
                     #     file_str = f.read()
@@ -157,58 +98,123 @@ if __name__ == "__main__":
                     # if not, return with status 501
                     request_name =  URL.split(' ')[0]
 
-
                     if request_name!='GET':
                         response_status = '501'
-                        break # need to change later
+                        response = str.encode(response_proto)
+                        response += str.encode(response_status)
+                        response += str.encode("INVALID REQUEST TYPE")
+                        conn.sendall(response)
+                        break
 
-
-                    str_local_host = "localhost:8888"
+                    str_local_host = "localhost:8888\\"
                     sub_url = URL.split(' ')[1]
-                    if sub_url[0:14] != "localhost:8888":
+                    if sub_url[0:15] != "localhost:8888\\":
                         response_status = '500'
-                        break  # need to change later
+                        response = str.encode(response_proto)
+                        response += str.encode(response_status)
+                        response += str.encode("INVALID URL")
+                        conn.sendall(response)
+                        break
 
-
+                    # We have a valid url here:
                     if sub_url == str_local_host:
                         landing_page_requested = True
-
-
 
                     # not need to check of it's localhost 8888 because it's defined already
                     prefix_str = "GET localhost:"
                     prefix_str += str(SERVER_PORT)
                     pdfname_index = len(prefix_str)
                     filename = request[pdfname_index+1:]
-                    # check if file exists, if not return 404
-                    if not check_if_photo_exists(filename):
+
+                    # if the request if for a specific wordcloud, check if file exists. if not return 404
+                    if not landing_page_requested and not check_if_photo_exists(filename):
                         response_status = '404'
-                    # in case of success (valid) return status 200
-                    conn.sendall(str.encode(response_proto))   ## returns status
-                    conn.sendall(str.encode( response_status))  ## returns status
-                    conn.sendall(str.encode(response_status_text)) ## returns status
-                    conn.sendall(str.encode(response_headers))  ## returns header of response
-                    conn.sendall(b'\n')  # to separate headers from body
+                        response = str.encode(response_proto)
+                        response += str.encode(response_status)
+                        response += str.encode("FILE NOT FOUND")
+                        conn.sendall(response)
+                        break
+
+                    # here comes the logic:
+
+                    # Get all files for buttons in Landing Page
+                    all_files_paths = get_all_files_rec("pdfs")
+                    all_files_buttons = [item[5:] for item in all_files_paths]
+                    all_files_levels = [item.count('\\') for item in all_files_paths]
+                    pics_names = [item[item.rfind('\\') + 1:] for item in all_files_paths]
+
+                    # Create Landing Page
+                    landing_page_html_string = "<!DOCTYPE html> <html> <body>\n"
+                    landing_page_html_string += "<h1>Landing Page</h1>\n"
+                    landing_page_html_string += "<h5>Welcome to the landing page!</h5>\n"
+                    landing_page_html_string += "<h5>Choose a .pdf file to generate a wordcloud from:</h5>\n"
+                    landing_page_html_string += "<table>\n"
+
+                    desired_wc_page_html_string = ""
+                    i = 0
+                    for item in all_files_buttons:
+                        # Create the photo
+                        picture = photo_from_pdf(all_files_paths[i], item)
+
+                        # Create the wordcloud html page
+                        wc_page_html_string = "<!DOCTYPE html> <html> <body>\n"
+                        wc_page_html_string += "<h1>" + item + "</h1>"
+                        wc_page_html_string += "<table><tr><td><img src = \"" + pics_names[i] + ".png\"></td></tr> \n"
+
+                        # Create the Go Back button
+                        wc_page_html_string += "<tr><td><a href=\""
+                        for d in range(0, all_files_levels[i]):
+                            wc_page_html_string += "..\\"
+                        wc_page_html_string += "LandingPage.html\">Go back</a></td></tr>\n"
+                        wc_page_html_string += "</table></body> </html>\n"
+
+                        # Insert the html string to an html file
+                        item_name = "pdfs\\" + item + ".html"
+                        f = open(item_name, 'w')
+                        message = wc_page_html_string
+                        f.write(message)
+                        f.close()
+
+                        if not landing_page_requested and filename == item:
+                            # desired_wc_page_html_string = wc_page_html_string
+                            desired_wc_page_html_file = item_name
+
+                        # Add a link in the landing page
+                        landing_page_html_string += "<tr><td><a href = \""
+                        landing_page_html_string += item_name + "\">"
+                        landing_page_html_string += item
+                        landing_page_html_string += "</a> </td> </tr>\n"
+
+                        i += 1
+                    landing_page_html_string += "</table>\n"
+                    landing_page_html_string += "</body> </html>"
+
+                    f = open('LandingPage.html', 'w')
+                    message1 = landing_page_html_string
+                    f.write(message1)
+                    f.close()
+
+                    # Build the response message:
+                    response_status = '200' # in case of success (valid) return status 200
+                    response = str.encode(response_proto)
+                    response += str.encode(response_status)
+                    response += str.encode("OK")
+                    response += b'\n'
+
+                    current_date = datetime.datetime.now()
+                    response_headers_date = current_date.strftime("%d-%b-%Y (%H:%M:%S.%f)")
+                    response_headers_content_type = "text/html"
+                    response_headers_content_len = ""
+                    response_headers = response_headers_date + response_headers_content_type + response_headers_content_len
+                    response+=str.encode(response_headers)
+                    response+=b'\n' # to separate headers from body
+
                     if landing_page_requested:
-                        conn.sendall(str.encode(landing_page_html_string))  ## sending landing page
-                   else:
-                       ## NEED TO ADD SEND AN IMAGE
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                        output = open('LandingPage.html', 'rb')
+                        response += output.read() # sending landing page
+                        conn.sendall(response)
+                    else:
+                        output = open(desired_wc_page_html_file, 'rb')
+                        response += output.read()  # sending landing page
+                        conn.sendall(response)
 
