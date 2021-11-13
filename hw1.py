@@ -241,10 +241,9 @@ if __name__ == "__main__":
                     response_headers_date = current_date.strftime("%d-%b-%Y (%H:%M:%S.%f)")
                     response_headers_content_type = "text/html" if landing_page_requested else "image/png"
                     # response_headers_content_len = ""
-                    response_headers = response_headers_date + response_headers_content_type
+                    response_headers = response_headers_date + " " + response_headers_content_type + "\n"
                     response += str.encode(response_headers)
-                    # response += b' '
-                    # to separate headers from body
+                    response += b'\n ' # to separate headers from body
 
                     if landing_page_requested:
                         print("if")
