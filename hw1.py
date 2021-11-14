@@ -15,8 +15,8 @@ SERVER_PORT = 8888
 DATA_MAX_SIZE = 4096
 
 
-def check_if_photo_exists(path_photo):
-    print("check_if_photo_exists for path: ", path_photo, "\n")
+def check_if_file_exists(path_photo):
+    print("check_if_file_exists for path: ", path_photo, "\n")
     return os.path.exists(path_photo)
 
 
@@ -56,17 +56,19 @@ if __name__ == "__main__":
 
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            # s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind(('localhost', SERVER_PORT))
-            s.listen(10)
+            s.listen(5)
             conn, addr = s.accept()
             with conn:
                 while True:
                     data = conn.recv(DATA_MAX_SIZE)
+                    print("data", data, "\n")
                     response_proto = 'HTTP/1.1'
                     landing_page_requested = False
                     specific_page_requested = False
                     photo_requested = False
+                    response = ""
                     # print("data is ", data)
                     if not data:
                         # in any other error, return status 500
@@ -86,7 +88,6 @@ if __name__ == "__main__":
 
                     # http_data = hw1_utils.decode_http(my_str_as_bytes)
                     http_data = hw1_utils.decode_http(data)
-                    response = ""
                     print("http_data: ", http_data, "\n")
 
                     host = http_data["Host"][1:]
@@ -145,7 +146,7 @@ if __name__ == "__main__":
                         photo_requested = True
                         # search for photo
                         print("###filename_path: ", filename_path, "\n")
-                        exists = check_if_photo_exists(filename_path)
+                        exists = check_if_file_exists(filename_path)
                         print("##exists: ", exists, "\n")
 
                         if not exists:
@@ -206,7 +207,7 @@ if __name__ == "__main__":
                         # print("filepath: ", filepath, "\n")
                         # if the request if for a wordcloud, check if file exists. if not return 404
                         if not landing_page_requested \
-                                and not check_if_photo_exists(filepath):
+                                and not check_if_file_exists(filepath):
                             # print("4044444444")
                             print("inside 404")
                             response_status = '404'
@@ -222,7 +223,6 @@ if __name__ == "__main__":
                             # Create the photo
 
                             # print("specific_page_requested!")
-                            print("SHOULD BE HERE \n")
                             print("filepath: ", filepath, "\n")
                             item = filepath[5:]
                             # print("item/filepath[5:]: ", item, "\n")
@@ -359,4 +359,4 @@ if __name__ == "__main__":
                             print("specific page response is: ", response.decode(), "\n")
                             conn.sendall(response)
                             # output.close()
-
+                    break
