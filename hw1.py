@@ -1,10 +1,7 @@
 import socket
-import string
 import hw1_utils
 import os
 import datetime
-# import matplotlib.pyplot as plt
-# import pdfminer
 from pdfminer.high_level import extract_text
 import glob
 
@@ -16,7 +13,6 @@ DATA_MAX_SIZE = 4096
 
 
 def check_if_file_exists(path_photo):
-    print("check_if_file_exists for path: ", path_photo, "\n")
     return os.path.exists(path_photo)
 
 
@@ -29,20 +25,22 @@ def get_all_files_rec(path):
 def photo_from_pdf(pdf_file_path, pdf_file_name):
     # convert pdf to string
     text = extract_text(pdf_file_path)
+    if not text:
+        return ""
     text = text.split()
     file = open('stopwords.txt', 'r')
 
     stop_words_txt = [line.split('\n') for line in file.readlines()]
-    stop_words = [item[0] for item in stop_words_txt]
+    stop_words = [item2[0] for item2 in stop_words_txt]
 
     # filter the stopwords
-    filtered_words = [word for word in text if word not in stop_words]
+    filtered_words = [word for word in text if word.lower() not in stop_words]
     result = ' '.join(filtered_words)
-
+    if not result:
+        return ""
     # pic_name = "wordclouds_pics/" + pdf_file_path + ".png"
-    pic_name = pdf_file_path[0:len(pdf_file_path) - 4] + ".png"
-    print("pic_name: ", pic_name, "\n")
-    result2 = hw1_utils.generate_wordcloud_to_file(result, pic_name)
+    pic_name2 = pdf_file_path[0:len(pdf_file_path) - 4] + ".png"
+    result2 = hw1_utils.generate_wordcloud_to_file(result, pic_name2)
     return result2
 
     # For showing a wordcloud
@@ -51,6 +49,7 @@ def photo_from_pdf(pdf_file_path, pdf_file_name):
     # plt.axis('off')
     # # # plt.savefig(f'wordcloud.png', dpi=300)
     # plt.show()
+
 
 if __name__ == "__main__":
 
@@ -63,13 +62,11 @@ if __name__ == "__main__":
             with conn:
                 while True:
                     data = conn.recv(DATA_MAX_SIZE)
-                    print("data", data, "\n")
                     response_proto = 'HTTP/1.1'
                     landing_page_requested = False
                     specific_page_requested = False
                     photo_requested = False
                     response = ""
-                    # print("data is ", data)
                     if not data:
                         # in any other error, return status 500
                         response_status = '500'
@@ -81,27 +78,19 @@ if __name__ == "__main__":
                         conn.sendall(response)
                         break
 
-                    # data2 = "<!DOCTYPE html><html><body><h1>My First Heading</h1><p>My first paragraph.</p></body></html>"
                     # with open ('test_server.txt', 'r') as f:
                     #     file_str = f.read()
                     #     my_str_as_bytes = str.encode(file_str)
-
                     # http_data = hw1_utils.decode_http(my_str_as_bytes)
-                    http_data = hw1_utils.decode_http(data)
-                    print("http_data: ", http_data, "\n")
 
-                    host = http_data["Host"][1:]
-                    # print("host: ", host, "\n")
+                    http_data = hw1_utils.decode_http(data)
 
                     request = http_data["Request"].split('\n')[0]
-                    print("request: ", request, "\n")
                     URL = request.split(' ')[1]
-                    print("URL: ", URL, "\n")
 
                     # check if the request is GET type
                     # if not, return with status 501
                     request_name = request.split(' ')[0]
-                    print("request_name: ", request_name, "\n")
 
                     if request_name != 'GET':
                         response_status = '501'
@@ -115,13 +104,8 @@ if __name__ == "__main__":
                         break
 
                     str_local_host = "localhost:8888"
-                    # str_local_host_postman = "localhost:8888"
-                    # sub_url = URL
-                    # print("URL[0:15]: ", URL[0:15], "\n")
-                    # print("host: ", host, ";\n")
-                    # print("str_local_host: ", str_local_host, "\n")
+                    host = http_data["Host"][1:]
 
-                    # if str_local_host != host:
                     if host != str_local_host:
                         response_status = '500'
                         response = str.encode(response_proto)
@@ -132,25 +116,16 @@ if __name__ == "__main__":
                         conn.sendall(response)
                         break
 
-                    # print("sub_url: ", URL, "\n")
-                    print("str_local_host: ", str_local_host, "\n")
-
-                    filename_path = request.split(' ')[1][1:]
+                    filename_path = "pdfs/"+request.split(' ')[1][1:]
                     # We have a valid url here:
-                    # if sub_url == str_local_host:
                     if URL == "/":
-                        # print("david")
                         landing_page_requested = True
                     elif URL.split('.')[-1] == "png":
-                        print("###photo_requested\n")
                         photo_requested = True
                         # search for photo
-                        print("###filename_path: ", filename_path, "\n")
                         exists = check_if_file_exists(filename_path)
-                        print("##exists: ", exists, "\n")
 
                         if not exists:
-                            # print("4044444444")
                             response_status = '404'
                             response = str.encode(response_proto)
                             response += b' '
@@ -177,39 +152,22 @@ if __name__ == "__main__":
                         response += str.encode(response_headers)
                         response += b'\r\n'  # to separate headers from body
 
-                        print("## SENDING a png photo")
-                        print("## filename_path is: ", filename_path, "\n")
-                        # filename_path_updated_slash = filename_path.replace("/", "\\")
-                        # output = open(filename_path_updated_slash, 'rb')
                         output = open(filename_path, 'rb')
                         response += output.read()
-
-                        # response += str.encode(filename_path_updated_slash)
                         conn.sendall(response)
-                        # print("response72 is: ", response[72]-'0', "\n")
-                        # print("png photo response is: ", response.decode(), "\n")
 
                         output.close()
 
                     else:
-                        print("specific_page_requested\n")
                         specific_page_requested = True
 
                     if not photo_requested:
                         # not need to check of it's localhost 8888 because it's defined already
-                        # prefix_str = "GET localhost:"
-                        # prefix_str += str(SERVER_PORT)
-                        # pdfname_index = len(prefix_str)
-                        # filename = request[pdfname_index+1:].split(' ')[0]
 
-                        # print("filename: ", filename, "\n")
                         filepath = filename_path + ".pdf"
-                        # print("filepath: ", filepath, "\n")
                         # if the request if for a wordcloud, check if file exists. if not return 404
                         if not landing_page_requested \
                                 and not check_if_file_exists(filepath):
-                            # print("4044444444")
-                            print("inside 404")
                             response_status = '404'
                             response = str.encode(response_proto)
                             response += b' '
@@ -222,40 +180,35 @@ if __name__ == "__main__":
                         if specific_page_requested:
                             # Create the photo
 
-                            # print("specific_page_requested!")
-                            print("filepath: ", filepath, "\n")
                             item = filepath[5:]
-                            # print("item/filepath[5:]: ", item, "\n")
                             picture = photo_from_pdf(filepath, item)
-                            print("photo_from_pdf: ", picture, "\n")
+                            if picture == "":
+                                # in any other error, return status 500
+                                response_status = '500'
+                                response = str.encode(response_proto)
+                                response += b' '
+                                response += str.encode(response_status)
+                                response += b' '
+                                response += str.encode("EMPTY PDF\r\n")
+                                conn.sendall(response)
+                                break
 
                             # Create the wordcloud html page
                             wc_page_html_string = "<!DOCTYPE html> <html> <body>\r\n"
                             wc_page_html_string += "<h1>" + item + "</h1>"
-                            # print("pics_names[i]: ", pics_names[i], "\n")
-                            # pic_name = pics_names[i][0:len(pics_names[i]) - 4]
                             pic_name = filename_path[5:]
-                            print("pic_name: ", pic_name, "\n")
 
-                            wc_page_html_string += "<table><tr><td><img src = \"/pdfs/" + pic_name + ".png\"></td></tr> \r\n"
+                            wc_page_html_string += "<table><tr><td><img src = \"/" + pic_name + ".png\"></td></tr> \r\n"
 
                             # Create the Go Back button
                             wc_page_html_string += "<tr><td><a href=\""
-                            # for d in range(0, all_files_levels[i]):
-                            #     wc_page_html_string += "..\\"
                             for d in range(0, filepath.count('/')+1):
                                 wc_page_html_string += "..\\"
-                            # wc_page_html_string += "LandingPage.html\">Go back</a></td></tr>\n"
                             wc_page_html_string += "\">Go back</a></td></tr>\r\n"
                             wc_page_html_string += "</table></body> </html>\r\n"
 
                             # Insert the html string to an html file
                             item_name = "pdfs\\" + item + ".html"
-                            desired_wc_page_html_file = item_name
-                            f = open(item_name, 'w')
-                            message = wc_page_html_string
-                            f.write(message)
-                            f.close()
 
                         # here comes the logic:
                         elif landing_page_requested:
@@ -275,45 +228,15 @@ if __name__ == "__main__":
                             desired_wc_page_html_string = ""
                             i = 0
                             for item in all_files_buttons:
-                                # # Create the photo
-                                # picture = photo_from_pdf(all_files_paths[i], item)
-                                #
-                                # # Create the wordcloud html page
-                                # wc_page_html_string = "<!DOCTYPE html> <html> <body>\n"
-                                # wc_page_html_string += "<h1>" + item + "</h1>"
-                                # # print("pics_names[i]: ", pics_names[i], "\n")
-                                # pic_name = pics_names[i][0:len(pics_names[i]) - 4]
-                                # wc_page_html_string += "<table><tr><td><img src = \"" + pic_name + ".png\"></td></tr> \n"
-                                #
-                                # # Create the Go Back button
-                                # wc_page_html_string += "<tr><td><a href=\""
-                                # for d in range(0, all_files_levels[i]):
-                                #     wc_page_html_string += "..\\"
-                                # # wc_page_html_string += "LandingPage.html\">Go back</a></td></tr>\n"
-                                # wc_page_html_string += "\">Go back</a></td></tr>\n"
-                                # wc_page_html_string += "</table></body> </html>\n"
-                                #
-                                # # Insert the html string to an html file
+
+                                # Insert the html string to an html file
                                 item_name = "pdfs\\" + item + ".html"
-                                # f = open(item_name, 'w')
-                                # message = wc_page_html_string
-                                # f.write(message)
-                                # f.close()
 
-                                # print("filename: ", filename, "\n")
-                                # print("all_files_paths[i]: ", all_files_paths[i], "\n")
                                 filename_updated_slash = filename_path.replace("/", "\\")
-                                # print("filename_updated_slash: ", filename_updated_slash, "\n")
-
-                                # if not landing_page_requested \
-                                #         and filename_updated_slash+".pdf" == "\\"+all_files_paths[i]:
-                                #     # desired_wc_page_html_string = wc_page_html_string
-                                #     desired_wc_page_html_file = item_name
-                                    # print("item_name: ", item_name, "\n")
 
                                 # Add a link in the landing page
                                 landing_page_html_string += "<tr><td><a href = \""
-                                landing_page_html_string += item_name[0:len(item_name)-9] + "\">"
+                                landing_page_html_string += item_name[5:len(item_name)-9] + "\">"
                                 landing_page_html_string += item
                                 landing_page_html_string += "</a> </td> </tr>\r\n"
 
@@ -343,20 +266,12 @@ if __name__ == "__main__":
                         response += b'\r\n'  # to separate headers from body
 
                         if landing_page_requested:
-                            print("SENDING landing page")
                             output = open('LandingPage.html', 'rb')
                             # we can input the string right away
                             response += output.read()  # sending landing page
-                            print("LandingPage response is: ", response.decode(), "\n")
-
                             conn.sendall(response)
                             output.close()
                         else:
-                            print("SENDING specific page")
-                            output = open(desired_wc_page_html_file, 'rb')
-                            response += output.read()  # sending landing page
-                            # response += str.encode(wc_page_html_string)
-                            print("specific page response is: ", response.decode(), "\n")
+                            response += str.encode(wc_page_html_string)
                             conn.sendall(response)
-                            # output.close()
                     break
